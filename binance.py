@@ -15,11 +15,12 @@ app = Flask(__name__)
 
 # ================= 🔐 SECURITY & AUTH =================
 def check_auth(username, password):
+    # Username: admin, Password: 12345 sesuai request
     return username == "admin" and password == "12345"
 
 def authenticate():
     return Response(
-        'Masukkan Password Sentinel v12.0\nAkses ditolak!', 401,
+        'Masukkan Password Binance Intelligence\nAkses ditolak!', 401,
         {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
 @app.route('/')
@@ -40,9 +41,12 @@ last_alerts = {}
 active_alerts = {}
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-TOKEN = "8361912847:AAHp6txd_IL__TaYL0m21y3MOLM_0MdzudE"
+# Token dan Chat ID lo
+TOKEN = "8742774728:AAFwj7EM9Xr6zSbIuHpkJ__O6B0LonFFvu4"
 CHAT_ID = "6052270268"
 bot = telebot.TeleBot(TOKEN)
+
+# Inisialisasi Exchange (Indodax)
 exchange = ccxt.indodax({'enableRateLimit': True, 'verify': False})
 current_usd_rate = 16200 
 ALL_IDR_SYMBOLS = []
@@ -53,8 +57,9 @@ def fetch_all_markets():
     try:
         markets = exchange.load_markets()
         ALL_IDR_SYMBOLS = [s for s in markets if s.endswith('/IDR')]
-        print(f"✅ Intelligence Engine Ready: {len(ALL_IDR_SYMBOLS)} Assets Scanned.")
-    except: pass
+        print(f"✅ Binance Intelligence Ready: {len(ALL_IDR_SYMBOLS)} Assets Scanned.")
+    except Exception as e:
+        print(f"❌ Error Fetch Markets: {e}")
 
 def get_market_analysis(symbol):
     try:
@@ -78,20 +83,19 @@ def get_market_analysis(symbol):
         df['vol_avg'] = df['vol'].rolling(window=20).mean()
         vol_spike_ratio = last['vol'] / df['vol_avg'].iloc[-1] if df['vol_avg'].iloc[-1] > 0 else 0
         
-        # Signal Determination
+        # Penentuan Sinyal
         signal = "⚖️ NEUTRAL"
-        header = "📊 MARKET INTELLIGENCE"
         if last['rsi'] < 35:
-            signal = "🚀 STRONG ACCUMULATION"; header = "🔥 BULLISH REVERSAL"
+            signal = "🚀 STRONG ACCUMULATION"
         elif last['rsi'] > 65:
-            signal = "🔴 DISTRIBUTION / SELL"; header = "⚠️ OVERBOUGHT WARNING"
+            signal = "🔴 DISTRIBUTION / SELL"
 
         curr_p = last['close']
         
         # --- REVISI TP INTRINSIK (NAPAS MARKET) ---
         df['range_pct'] = (df['high'] - df['low']) / df['low']
         avg_range = df['range_pct'].tail(20).mean()
-        base_step = max(min(avg_range, 0.08), 0.01) # Min 1%, Max 8%
+        base_step = max(min(avg_range, 0.08), 0.01) # Batas realistis 1% - 8%
         power_multiplier = 1.0 + (vol_spike_ratio / 10)
 
         if "ACCUMULATION" in signal:
@@ -123,12 +127,11 @@ def get_market_analysis(symbol):
             'rsi': last['rsi'],
             'mpi': mpi,
             'signal': signal,
-            'header': header,
             'vol_spike': vol_spike_ratio,
             'grade': grade
         }
     except Exception as e:
-        print(f"⚠️ Analysis Error: {e}")
+        print(f"⚠️ Analysis Error {symbol}: {e}")
         return None
 
 # ================= 🐋 SCANNER ENGINE =================
@@ -156,7 +159,7 @@ def whale_and_anomaly_detector():
                 if grade == "A+ (PERFECT)":
                     if coin_name not in last_alerts or last_alerts[coin_name] != current_signal:
                         msg = (
-                            f"🌟 **SENTINEL HIGH-PRIORITY ALERT** 🌟\n"
+                            f"🌟 **BINANCE HIGH-PRIORITY ALERT** 🌟\n"
                             f"━━━━━━━━━━━━━━━━━━━━\n"
                             f"🪙 Asset: `{coin_name}`\n"
                             f"🏆 Grade: **{grade}** 🔥\n"
@@ -216,19 +219,22 @@ def get_intelligence():
     if not auth or not check_auth(auth.username, auth.password):
         return jsonify({"error": "Unauthorized"}), 401
     
-    reports = []
-    current_data = active_alerts.copy()
-    sorted_items = sorted(current_data.items(), key=lambda x: x[1].get('time', ''), reverse=True)
-    
-    for coin, info in sorted_items:
-        reports.append({
-            "asset": coin, "signal": info.get('signal'), "grade": info.get('grade'),
-            "time": info.get('time'), "price": f"{info.get('price_usd', 0):.8f}",
-            "tp1": f"{info.get('tp1_usd', 0):.8f}", "tp2": f"{info.get('tp2_usd', 0):.8f}",
-            "tp3": f"{info.get('tp3_usd', 0):.8f}", "rsi": f"{info.get('rsi', 0):.2f}",
-            "mpi": f"{info.get('mpi', 0):.1f}", "vol": f"{info.get('vol_spike', 0):.1f}"
-        })
-    return jsonify({"reports": reports})
+    try:
+        reports = []
+        current_data = active_alerts.copy()
+        sorted_items = sorted(current_data.items(), key=lambda x: x[1].get('time', ''), reverse=True)
+        
+        for coin, info in sorted_items:
+            reports.append({
+                "asset": coin, "signal": info.get('signal'), "grade": info.get('grade'),
+                "time": info.get('time'), "price": f"{info.get('price_usd', 0):.8f}",
+                "tp1": f"{info.get('tp1_usd', 0):.8f}", "tp2": f"{info.get('tp2_usd', 0):.8f}",
+                "tp3": f"{info.get('tp3_usd', 0):.8f}", "rsi": f"{info.get('rsi', 0):.2f}",
+                "mpi": f"{info.get('mpi', 0):.1f}", "vol": f"{info.get('vol_spike', 0):.1f}"
+            })
+        return jsonify({"reports": reports})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     fetch_all_markets()
