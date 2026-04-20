@@ -1,0 +1,6 @@
+pyTelegramBotAPI
+ccxt
+pandas
+flask
+requests
+urllib3
