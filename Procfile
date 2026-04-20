@@ -1,1 +1,1 @@
-worker: python binance.py
+web: python binance.py
