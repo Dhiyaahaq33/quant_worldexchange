@@ -15,6 +15,7 @@ app = Flask(__name__)
 
 # ================= 🔐 SECURITY & AUTH =================
 def check_auth(username, password):
+    # Username: admin, Password: 12345
     return username == "admin" and password == "12345"
 
 def authenticate():
@@ -34,7 +35,7 @@ G, Y, R, C, W = '\033[92m', '\033[93m', '\033[91m', '\033[96m', '\033[0m'
 last_alerts, active_alerts = {}, {}
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Pakai TOKEN baru lo
+# Pakai TOKEN bot lo
 TOKEN = "8361912847:AAHp6txd_IL__TaYL0m21y3MOLM_0MdzudE"
 CHAT_ID = "6052270268"
 bot = telebot.TeleBot(TOKEN)
@@ -48,7 +49,7 @@ def fetch_all_markets():
     try:
         markets = exchange.load_markets()
         ALL_IDR_SYMBOLS = [s for s in markets if s.endswith('/IDR')]
-        print(f"✅ Intelligence Engine Ready: {len(ALL_IDR_SYMBOLS)} Assets Scanned.")
+        print(f"✅ Binance Intelligence Ready: {len(ALL_IDR_SYMBOLS)} Assets Scanned.")
     except: pass
 
 def get_market_analysis(symbol):
@@ -97,14 +98,18 @@ def get_market_analysis(symbol):
         elif "DISTRIBUTION" in signal and mpi < 35 and vol_spike_ratio > 1.5: grade = "A+ (PERFECT)"
         elif (mpi > 65 or mpi < 35) and vol_spike_ratio <= 1.5: grade = "B (EARLY)"
 
-        # --- FIX: Return Data Utuh ---
+        # --- FIX: Dictionary Ditutup dengan Benar ---
         return {
             'price_usd': (curr_p / current_usd_rate) * 0.95,
             'price_idr': curr_p,
             'tp1_usd': (tp1_raw / current_usd_rate) * 0.95,
             'tp2_usd': (tp2_raw / current_usd_rate) * 0.95,
             'tp3_usd': (tp3_raw / current_usd_rate) * 0.95,
-            'rsi': last['rsi'], 'mpi': mpi, 'signal': signal, 'vol_spike': vol_spike_ratio, 'grade': grade
+            'rsi': last['rsi'], 
+            'mpi': mpi, 
+            'signal': signal, 
+            'vol_spike': vol_spike_ratio, 
+            'grade': grade
         }
     except Exception as e:
         print(f"⚠️ Error analysis {symbol}: {e}")
