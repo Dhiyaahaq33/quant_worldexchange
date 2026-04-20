@@ -15,7 +15,7 @@ app = Flask(__name__)
 
 # ================= 🔐 SECURITY & AUTH =================
 def check_auth(username, password):
-    # Username: admin, Password: 12345 sesuai request
+    # Password diset ke 12345 sesuai request lo
     return username == "admin" and password == "12345"
 
 def authenticate():
@@ -41,12 +41,11 @@ last_alerts = {}
 active_alerts = {}
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Token dan Chat ID lo
-TOKEN = "8742774728:AAFwj7EM9Xr6zSbIuHpkJ__O6B0LonFFvu4"
+# Token Baru yang lo kasih
+TOKEN = "8361912847:AAHp6txd_IL__TaYL0m21y3MOLM_0MdzudE"
 CHAT_ID = "6052270268"
 bot = telebot.TeleBot(TOKEN)
 
-# Inisialisasi Exchange (Indodax)
 exchange = ccxt.indodax({'enableRateLimit': True, 'verify': False})
 current_usd_rate = 16200 
 ALL_IDR_SYMBOLS = []
@@ -59,7 +58,7 @@ def fetch_all_markets():
         ALL_IDR_SYMBOLS = [s for s in markets if s.endswith('/IDR')]
         print(f"✅ Binance Intelligence Ready: {len(ALL_IDR_SYMBOLS)} Assets Scanned.")
     except Exception as e:
-        print(f"❌ Error Fetch Markets: {e}")
+        print(f"❌ Error Fetch: {e}")
 
 def get_market_analysis(symbol):
     try:
@@ -67,14 +66,14 @@ def get_market_analysis(symbol):
         if not ohlcv or len(ohlcv) < 20: return None        
         df = pd.DataFrame(ohlcv, columns=['ts', 'open', 'high', 'low', 'close', 'vol'])
         
-        # Indikator Dasar
+        # Indikator
         df['sma_20'] = df['close'].rolling(window=20).mean()
         delta = df['close'].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
         df['rsi'] = 100 - (100 / (1 + (gain / loss)))
         
-        # Market Psychology (MPI)
+        # MPI & Vol Spike
         green_vol = df[df['close'] > df['open']]['vol'].sum()
         red_vol = df[df['close'] < df['open']]['vol'].sum()
         mpi = (green_vol / (green_vol + red_vol)) * 100 if (green_vol + red_vol) > 0 else 50
@@ -83,40 +82,28 @@ def get_market_analysis(symbol):
         df['vol_avg'] = df['vol'].rolling(window=20).mean()
         vol_spike_ratio = last['vol'] / df['vol_avg'].iloc[-1] if df['vol_avg'].iloc[-1] > 0 else 0
         
-        # Penentuan Sinyal
         signal = "⚖️ NEUTRAL"
-        if last['rsi'] < 35:
-            signal = "🚀 STRONG ACCUMULATION"
-        elif last['rsi'] > 65:
-            signal = "🔴 DISTRIBUTION / SELL"
+        if last['rsi'] < 35: signal = "🚀 STRONG ACCUMULATION"
+        elif last['rsi'] > 65: signal = "🔴 DISTRIBUTION / SELL"
 
         curr_p = last['close']
         
-        # --- REVISI TP INTRINSIK (NAPAS MARKET) ---
+        # TP Intrinsik
         df['range_pct'] = (df['high'] - df['low']) / df['low']
         avg_range = df['range_pct'].tail(20).mean()
-        base_step = max(min(avg_range, 0.08), 0.01) # Batas realistis 1% - 8%
+        base_step = max(min(avg_range, 0.08), 0.01)
         power_multiplier = 1.0 + (vol_spike_ratio / 10)
 
         if "ACCUMULATION" in signal:
-            tp1_raw = curr_p * (1 + base_step)  
-            tp2_raw = curr_p * (1 + (base_step * 1.8 * power_multiplier)) 
-            tp3_raw = curr_p * (1 + (base_step * 3.5 * power_multiplier)) 
+            tp1_raw, tp2_raw, tp3_raw = curr_p*(1+base_step), curr_p*(1+base_step*1.8*power_multiplier), curr_p*(1+base_step*3.5*power_multiplier)
         elif "DISTRIBUTION" in signal:
-            tp1_raw = curr_p * (1 - base_step)
-            tp2_raw = curr_p * (1 - (base_step * 1.8 * power_multiplier))
-            tp3_raw = curr_p * (1 - (base_step * 3.5 * power_multiplier))
-        else:
-            tp1_raw = tp2_raw = tp3_raw = curr_p
+            tp1_raw, tp2_raw, tp3_raw = curr_p*(1-base_step), curr_p*(1-base_step*1.8*power_multiplier), curr_p*(1-base_step*3.5*power_multiplier)
+        else: tp1_raw = tp2_raw = tp3_raw = curr_p
 
-        # --- PENENTUAN GRADE A+ (SINKRONISASI POWER) ---
         grade = "C (LOW)"
-        if "ACCUMULATION" in signal and mpi > 65 and vol_spike_ratio > 1.5:
-            grade = "A+ (PERFECT)"
-        elif "DISTRIBUTION" in signal and mpi < 35 and vol_spike_ratio > 1.5:
-            grade = "A+ (PERFECT)"
-        elif (mpi > 65 or mpi < 35) and vol_spike_ratio <= 1.5:
-            grade = "B (EARLY)"
+        if "ACCUMULATION" in signal and mpi > 65 and vol_spike_ratio > 1.5: grade = "A+ (PERFECT)"
+        elif "DISTRIBUTION" in signal and mpi < 35 and vol_spike_ratio > 1.5: grade = "A+ (PERFECT)"
+        elif (mpi > 65 or mpi < 35) and vol_spike_ratio <= 1.5: grade = "B (EARLY)"
 
         return {
             'price_usd': (curr_p / current_usd_rate) * 0.95,
@@ -124,14 +111,10 @@ def get_market_analysis(symbol):
             'tp1_usd': (tp1_raw / current_usd_rate) * 0.95,
             'tp2_usd': (tp2_raw / current_usd_rate) * 0.95,
             'tp3_usd': (tp3_raw / current_usd_rate) * 0.95,
-            'rsi': last['rsi'],
-            'mpi': mpi,
-            'signal': signal,
-            'vol_spike': vol_spike_ratio,
-            'grade': grade
+            'rsi': last['rsi'], 'mpi': mpi, 'signal': signal, 'vol_spike': vol_spike_ratio, 'grade': grade
         }
     except Exception as e:
-        print(f"⚠️ Analysis Error {symbol}: {e}")
+        print(f"⚠️ Error analysis {symbol}: {e}")
         return None
 
 # ================= 🐋 SCANNER ENGINE =================
@@ -146,16 +129,13 @@ def whale_and_anomaly_detector():
                 current_signal = data.get('signal', 'NEUTRAL')
                 grade = data.get('grade', 'C')
                 
-                # Log Terminal
                 time_now = datetime.now().strftime('%H:%M:%S')
                 s_col = G if "ACCUMULATION" in current_signal else R if "DISTRIBUTION" in current_signal else Y
                 print(f"{s_col}[SCANNING]{W} {coin_name:<8} | {grade:<12} | {time_now}")
 
-                # Save Data for Web Dashboard
                 data['time'] = time_now
                 active_alerts[coin_name] = data 
 
-                # Telegram Filter (Hanya Grade A+)
                 if grade == "A+ (PERFECT)":
                     if coin_name not in last_alerts or last_alerts[coin_name] != current_signal:
                         msg = (
@@ -171,10 +151,9 @@ def whale_and_anomaly_detector():
                             f"🐳 Power: `{data['mpi']:.1f}%` | ⚡ Vol: `{data['vol_spike']:.1f}x`"
                         )
                         markup = InlineKeyboardMarkup()
-                        markup.add(InlineKeyboardButton("📊 View Chart", url=f"https://indodax.com/market/{coin_name}IDR"))
+                        markup.add(InlineKeyboardButton("📊 Chart", url=f"https://indodax.com/market/{coin_name}IDR"))
                         bot.send_message(CHAT_ID, msg, parse_mode='Markdown', reply_markup=markup)
                         last_alerts[coin_name] = current_signal
-
                 time.sleep(1)
             except: continue
         time.sleep(30)
@@ -187,54 +166,31 @@ def cmd_deep_cek(m):
         if len(parts) < 2:
             bot.reply_to(m, "Format salah. Gunakan: `/cek btc`")
             return
-        
         coin = parts[1].upper().replace("IDR", "")
         analysis = get_market_analysis(f"{coin}/IDR")
-        
         if analysis:
-            rsi_emoji = "📉" if analysis['rsi'] < 40 else "📈" if analysis['rsi'] > 60 else "⚖️"
-            res = (
-                f"🧠 **DEEP ANALYSIS: {coin}**\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"🏆 Grade: **{analysis['grade']}**\n"
-                f"📢 Signal: **{analysis['signal']}**\n\n"
-                f"💵 Price: `${analysis['price_usd']:.8f}`\n"
-                f"🎯 TP1: `${analysis['tp1_usd']:.8f}`\n"
-                f"🚀 TP2: `${analysis['tp2_usd']:.8f}`\n"
-                f"🌌 TP3: `${analysis['tp3_usd']:.8f}`\n\n"
-                f"📊 RSI: `{analysis['rsi']:.2f}` {rsi_emoji}\n"
-                f"🐳 Power: `{analysis['mpi']:.1f}%` (MPI)\n"
-                f"⚡ Vol: `{analysis['vol_spike']:.1f}x`"
-            )
+            res = f"🧠 **DEEP ANALYSIS: {coin}**\n🏆 Grade: **{analysis['grade']}**\n📢 Signal: **{analysis['signal']}**\n💵 Price: `${analysis['price_usd']:.8f}`\n🎯 TP1: `${analysis['tp1_usd']:.8f}`\n📊 RSI: `{analysis['rsi']:.2f}`\n🐳 Power: `{analysis['mpi']:.1f}%`"
             bot.send_message(m.chat.id, res, parse_mode='Markdown')
-        else:
-            bot.reply_to(m, "❌ Data koin tidak ditemukan.")
-    except Exception as e:
-        bot.reply_to(m, f"⚠️ Error: {str(e)}")
+        else: bot.reply_to(m, "❌ Data koin tidak ditemukan.")
+    except Exception as e: bot.reply_to(m, f"⚠️ Error: {str(e)}")
 
-# ================= 🌐 WEB API =================
 @app.route('/api/intelligence')
 def get_intelligence():
     auth = request.authorization
     if not auth or not check_auth(auth.username, auth.password):
         return jsonify({"error": "Unauthorized"}), 401
-    
-    try:
-        reports = []
-        current_data = active_alerts.copy()
-        sorted_items = sorted(current_data.items(), key=lambda x: x[1].get('time', ''), reverse=True)
-        
-        for coin, info in sorted_items:
-            reports.append({
-                "asset": coin, "signal": info.get('signal'), "grade": info.get('grade'),
-                "time": info.get('time'), "price": f"{info.get('price_usd', 0):.8f}",
-                "tp1": f"{info.get('tp1_usd', 0):.8f}", "tp2": f"{info.get('tp2_usd', 0):.8f}",
-                "tp3": f"{info.get('tp3_usd', 0):.8f}", "rsi": f"{info.get('rsi', 0):.2f}",
-                "mpi": f"{info.get('mpi', 0):.1f}", "vol": f"{info.get('vol_spike', 0):.1f}"
-            })
-        return jsonify({"reports": reports})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    reports = []
+    current_data = active_alerts.copy()
+    sorted_items = sorted(current_data.items(), key=lambda x: x[1].get('time', ''), reverse=True)
+    for coin, info in sorted_items:
+        reports.append({
+            "asset": coin, "signal": info.get('signal'), "grade": info.get('grade'),
+            "time": info.get('time'), "price": f"{info.get('price_usd', 0):.8f}",
+            "tp1": f"{info.get('tp1_usd', 0):.8f}", "tp2": f"{info.get('tp2_usd', 0):.8f}",
+            "tp3": f"{info.get('tp3_usd', 0):.8f}", "rsi": f"{info.get('rsi', 0):.2f}",
+            "mpi": f"{info.get('mpi', 0):.1f}", "vol": f"{info.get('vol_spike', 0):.1f}"
+        })
+    return jsonify({"reports": reports})
 
 if __name__ == "__main__":
     fetch_all_markets()
