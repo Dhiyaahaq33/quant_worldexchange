@@ -1,5 +1,5 @@
-pyTelegramBotAPI
 ccxt
+telebot
 pandas
 flask
 requests
