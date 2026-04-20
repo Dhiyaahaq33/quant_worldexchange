@@ -40,7 +40,7 @@ def send_wa_notif(message):
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ================= 🔐 CREDENTIALS =================
-TOKEN = "8742774728:AAFwj7EM9Xr6zSbIuHpkJ__O6B0LonFFvu4"
+TOKEN = "8361912847:AAHp6txd_IL__TaYL0m21y3MOLM_0MdzudE"
 CHAT_ID = "6052270268"
 
 bot = telebot.TeleBot(TOKEN)
