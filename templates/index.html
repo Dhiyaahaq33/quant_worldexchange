@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>SENTINEL v12.0 | CORE ACCESS</title>
+    <title>BINANCE INTELLIGENCE | CORE ACCESS</title>
     <style>
         body { 
             background-color: #050505; 
@@ -16,9 +16,10 @@
             text-shadow: 0 0 20px #00ff41;
             margin-bottom: 5px;
             letter-spacing: 2px;
+            color: #00ff41;
         }
 
-        /* --- ANIMASI LAMPU NEON A+ --- */
+        /* --- ANIMASI LAMPU NEON UNTUK GRADE A+ --- */
         @keyframes neonPulseGreen {
             0% { box-shadow: 0 0 5px #00ff41; border-color: #00ff41; }
             50% { box-shadow: 0 0 25px #00ff41; border-color: #00ff41; }
@@ -33,38 +34,28 @@
 
         .highlight-a-plus-buy {
             animation: neonPulseGreen 1.5s infinite ease-in-out !important;
-            border-width: 2px !important;
+            border: 2px solid #00ff41 !important;
         }
 
         .highlight-a-plus-sell {
             animation: neonPulseRed 1.5s infinite ease-in-out !important;
-            border-width: 2px !important;
+            border: 2px solid #ff3e3e !important;
         }
 
-        /* --- LAYOUT KARTU --- */
+        /* --- STYLING KARTU --- */
         .signal-card {
             border: 1px solid #222;
             padding: 25px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             border-radius: 12px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0,0,0,0.8);
-            position: relative;
-            overflow: hidden;
+            background: rgba(15, 15, 15, 0.9);
         }
 
-        .card-buy { 
-            background: rgba(0, 255, 65, 0.03) !important; 
-            border-left: 8px solid #00ff41; 
-        }
-        .card-sell { 
-            background: rgba(255, 62, 62, 0.03) !important; 
-            border-left: 8px solid #ff3e3e; 
-        }
-        .card-wait { 
-            background: rgba(241, 196, 15, 0.03) !important; 
-            border-left: 8px solid #f1c40f; 
-        }
+        .card-buy { border-left: 10px solid #00ff41; }
+        .card-sell { border-left: 10px solid #ff3e3e; }
+        .card-wait { border-left: 10px solid #f1c40f; }
 
         .asset-name { font-size: 2.2em; font-weight: 900; color: #ffffff; letter-spacing: 1px; }
         .signal-text { font-size: 1.6em; font-weight: bold; text-transform: uppercase; }
@@ -76,18 +67,19 @@
         .grade-badge {
             padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.8em;
+            font-size: 0.85em;
             font-weight: bold;
             margin-left: 10px;
             border: 1px solid currentColor;
+            background: rgba(0,0,0,0.5);
         }
 
-        .indicator-label { color: #666; font-size: 0.75em; font-weight: bold; text-transform: uppercase; }
-        .indicator-val { color: #fff; font-size: 1.3em; font-weight: bold; margin-top: 2px; }
+        .indicator-label { color: #777; font-size: 0.75em; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+        .indicator-val { color: #fff; font-size: 1.3em; font-weight: bold; }
         
-        .new-signal { animation: dropIn 0.5s ease-out; }
-        @keyframes dropIn {
-            from { transform: translateX(-20px); opacity: 0; }
+        .new-signal-anim { animation: slideIn 0.5s ease-out; }
+        @keyframes slideIn {
+            from { transform: translateX(-30px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
     </style>
@@ -96,8 +88,8 @@
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" preload="auto"></audio>
 
     <div class="dashboard-header">
-        <h1>CAHYO SENTINEL</h1>
-        <p id="status" style="color: #666;">ESTABLISHING ENCRYPTED CONNECTION...</p>
+        <h1>BINANCE INTELLIGENCE</h1>
+        <p id="status" style="color: #555;">ESTABLISHING CORE ACCESS...</p>
     </div>
     <hr style="border: 0; border-top: 1px solid #333; margin-bottom: 30px;">
 
@@ -112,9 +104,9 @@
                 const data = await response.json();
                 const container = document.getElementById('feed-container');
                 
-                document.getElementById('status').innerText = `SYSTEM ACTIVE | ${new Date().toLocaleTimeString()} | ADMIN ACCESS`;
+                document.getElementById('status').innerText = `LIVE CORE ACTIVE | ${new Date().toLocaleTimeString()} | ENCRYPTED`;
 
-                // Sound Alert untuk sinyal baru
+                // Play sound if new signal detected
                 if (data.reports.length > lastAssetsCount) {
                     if (lastAssetsCount !== 0) document.getElementById('alert-sound').play().catch(() => {});
                     lastAssetsCount = data.reports.length;
@@ -128,7 +120,7 @@
                     let barClass = 'card-wait';
                     let highlightClass = '';
 
-                    // Logika Warna & Efek Lampu
+                    // Logic for Colors & Neon Pulse
                     if (report.signal.includes('ACCUMULATION')) { 
                         colorClass = 'buy'; 
                         barClass = 'card-buy';
@@ -140,8 +132,8 @@
                         if (report.grade.includes('A+')) highlightClass = 'highlight-a-plus-sell';
                     }
                     
-                    const gradeColor = report.grade.includes('A+') ? '#00ff41' : (report.grade.includes('B') ? '#f1c40f' : '#666');
-                    const animationClass = existingCards.includes(report.asset) ? '' : 'new-signal';
+                    const gradeColor = report.grade.includes('A+') ? '#00ff41' : (report.grade.includes('B') ? '#f1c40f' : '#888');
+                    const animationClass = existingCards.includes(report.asset) ? '' : 'new-signal-anim';
 
                     const card = document.createElement('div');
                     card.className = `signal-card ${barClass} ${highlightClass} ${animationClass}`;
@@ -152,32 +144,32 @@
                             <div>
                                 <span class="asset-name">${report.asset}</span>
                                 <span class="grade-badge" style="color: ${gradeColor}">${report.grade}</span>
-                                <div style="color: #444; font-size: 0.75em; margin-top: 8px; font-family: monospace;">UUID: ${Math.random().toString(36).substr(2, 9).toUpperCase()} | ${report.time}</div>
+                                <div style="color: #444; font-size: 0.75em; margin-top: 8px; font-family: monospace;">TIME: ${report.time} | STATUS: VERIFIED</div>
                             </div>
                             <span class="signal-text ${colorClass}">${report.signal}</span>
                         </div>                        
                         
-                        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr; gap: 20px; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
-                            <div><div class="indicator-label">Price Adj.</div><div class="indicator-val">$${report.price}</div></div>
+                        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr; gap: 20px; margin-bottom: 25px; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px solid #222;">
+                            <div><div class="indicator-label">ENTRY PRICE</div><div class="indicator-val">$${report.price}</div></div>
                             <div><div class="indicator-label">RSI (14)</div><div class="indicator-val" style="color: #fff">${report.rsi}</div></div>
-                            <div><div class="indicator-label">Whale Power</div><div class="indicator-val" style="color: #00ff41">${report.mpi}%</div></div>
-                            <div><div class="indicator-label">Vol Spike</div><div class="indicator-val" style="color: #f1c40f">${report.vol}x</div></div>
+                            <div><div class="indicator-label">B-POWER</div><div class="indicator-val" style="color: #00ff41">${report.mpi}%</div></div>
+                            <div><div class="indicator-label">VOL SPIKE</div><div class="indicator-val" style="color: #f1c40f">${report.vol}x</div></div>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; border-top: 1px solid #222; padding-top: 15px;">
-                            <div><div class="indicator-label">Intrinsic TP 1</div><div class="indicator-val" style="color:#fff">$${report.tp1}</div></div>
-                            <div><div class="indicator-label">Intrinsic TP 2</div><div class="indicator-val" style="color:#fff">$${report.tp2}</div></div>
-                            <div><div class="indicator-label">Intrinsic TP 3</div><div class="indicator-val" style="color:#fff">$${report.tp3}</div></div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; border-top: 1px dashed #333; padding-top: 20px;">
+                            <div><div class="indicator-label">INTRINSIC TP 1</div><div class="indicator-val" style="color:#00ff41">$${report.tp1}</div></div>
+                            <div><div class="indicator-label">INTRINSIC TP 2</div><div class="indicator-val" style="color:#00ff41">$${report.tp2}</div></div>
+                            <div><div class="indicator-label">INTRINSIC TP 3</div><div class="indicator-val" style="color:#00ff41">$${report.tp3}</div></div>
                         </div>
                     `;
                     container.appendChild(card);
                 });
             } catch (err) { 
-                document.getElementById('status').innerText = "CONNECTION LOST. RE-ESTABLISHING...";
+                document.getElementById('status').innerText = "CORE CONNECTION ERROR. RETRYING...";
             }
         }
         
-        setInterval(updateDashboard, 2000); 
+        setInterval(updateDashboard, 2500); 
         updateDashboard();
     </script>
 </body>
