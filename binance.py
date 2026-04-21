@@ -37,7 +37,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Pakai TOKEN bot lo
 TOKEN = "8361912847:AAHp6txd_IL__TaYL0m21y3MOLM_0MdzudE"
-CHAT_ID = "6052270268"
+CHAT_ID = "6052270268" , "7346722208"
 bot = telebot.TeleBot(TOKEN)
 exchange = ccxt.indodax({'enableRateLimit': True, 'verify': False})
 current_usd_rate = 16200 
