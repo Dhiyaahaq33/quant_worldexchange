@@ -36,7 +36,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 TOKEN = "8361912847:AAHp6txd_IL__TaYL0m21y3MOLM_0MdzudE"
 # REVISI: Menggunakan list agar bisa dilooping
-CHAT_IDS = ["6052270268", "7346722208"] 
+CHAT_IDS = ["6052270268"] 
 
 bot = telebot.TeleBot(TOKEN)
 exchange = ccxt.indodax({'enableRateLimit': True, 'verify': False})
