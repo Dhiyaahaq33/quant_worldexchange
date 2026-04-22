@@ -1,6 +1,7 @@
+pyTelegramBotAPI
 ccxt
-telebot
 pandas
 flask
 requests
 urllib3
+python-dotenv
