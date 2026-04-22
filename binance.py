@@ -15,7 +15,6 @@ app = Flask(__name__)
 
 # ================= 🔐 SECURITY & AUTH =================
 def check_auth(username, password):
-    # Username: admin, Password: 12345
     return username == "admin" and password == "12345"
 
 def authenticate():
@@ -35,9 +34,10 @@ G, Y, R, C, W = '\033[92m', '\033[93m', '\033[91m', '\033[96m', '\033[0m'
 last_alerts, active_alerts = {}, {}
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Pakai TOKEN bot lo
 TOKEN = "8361912847:AAHp6txd_IL__TaYL0m21y3MOLM_0MdzudE"
-CHAT_ID = "6052270268" , "7346722208"
+# REVISI: Menggunakan list agar bisa dilooping
+CHAT_IDS = ["6052270268", "7346722208"] 
+
 bot = telebot.TeleBot(TOKEN)
 exchange = ccxt.indodax({'enableRateLimit': True, 'verify': False})
 current_usd_rate = 16200 
@@ -58,14 +58,12 @@ def get_market_analysis(symbol):
         if not ohlcv or len(ohlcv) < 20: return None        
         df = pd.DataFrame(ohlcv, columns=['ts', 'open', 'high', 'low', 'close', 'vol'])
         
-        # Indikator
         df['sma_20'] = df['close'].rolling(window=20).mean()
         delta = df['close'].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
         df['rsi'] = 100 - (100 / (1 + (gain / loss)))
         
-        # MPI & Vol Spike
         green_vol = df[df['close'] > df['open']]['vol'].sum()
         red_vol = df[df['close'] < df['open']]['vol'].sum()
         mpi = (green_vol / (green_vol + red_vol)) * 100 if (green_vol + red_vol) > 0 else 50
@@ -79,8 +77,6 @@ def get_market_analysis(symbol):
         elif last['rsi'] > 65: signal = "🔴 DISTRIBUTION / SELL"
 
         curr_p = last['close']
-        
-        # Adaptive TP (Intrinsic)
         df['range_pct'] = (df['high'] - df['low']) / df['low']
         avg_range = df['range_pct'].tail(20).mean()
         base_step = max(min(avg_range, 0.08), 0.01)
@@ -92,13 +88,11 @@ def get_market_analysis(symbol):
             tp1_raw, tp2_raw, tp3_raw = curr_p*(1-base_step), curr_p*(1-base_step*1.8*power_multiplier), curr_p*(1-base_step*3.5*power_multiplier)
         else: tp1_raw = tp2_raw = tp3_raw = curr_p
 
-        # Penentuan Grade
         grade = "C (LOW)"
         if "ACCUMULATION" in signal and mpi > 65 and vol_spike_ratio > 1.5: grade = "A+ (PERFECT)"
         elif "DISTRIBUTION" in signal and mpi < 35 and vol_spike_ratio > 1.5: grade = "A+ (PERFECT)"
         elif (mpi > 65 or mpi < 35) and vol_spike_ratio <= 1.5: grade = "B (EARLY)"
 
-        # --- FIX: Dictionary Ditutup dengan Benar ---
         return {
             'price_usd': (curr_p / current_usd_rate) * 0.95,
             'price_idr': curr_p,
@@ -144,11 +138,18 @@ def whale_and_anomaly_detector():
                         )
                         markup = InlineKeyboardMarkup()
                         markup.add(InlineKeyboardButton("📊 Chart", url=f"https://indodax.com/market/{coin_name}IDR"))
-                        bot.send_message(CHAT_ID, msg, parse_mode='Markdown', reply_markup=markup)
+                        
+                        # REVISI: Kirim ke semua akun di CHAT_IDS
+                        for chat_id in CHAT_IDS:
+                            try:
+                                bot.send_message(chat_id, msg, parse_mode='Markdown', reply_markup=markup)
+                            except Exception as e:
+                                print(f"❌ Gagal kirim ke {chat_id}: {e}")
+                        
                         last_alerts[coin_name] = data['signal']
-                time.sleep(1)
+                time.sleep(1) # Delay kecil antar scan koin
             except: continue
-        time.sleep(30)
+        time.sleep(30) # Delay antar putaran scan market
 
 # ================= 💬 BOT COMMANDS =================
 @bot.message_handler(commands=['cek'])
@@ -161,7 +162,13 @@ def cmd_deep_cek(m):
         coin = parts[1].upper().replace("IDR", "")
         analysis = get_market_analysis(f"{coin}/IDR")
         if analysis:
-            res = f"🧠 **ANALYSIS: {coin}**\n🏆 Grade: **{analysis['grade']}**\n📢 Signal: **{analysis['signal']}**\n💵 Price: `${analysis['price_usd']:.8f}`\n🎯 TP1: `${analysis['tp1_usd']:.8f}`\n📊 RSI: `{analysis['rsi']:.2f}`\n🐳 Power: `{analysis['mpi']:.1f}%`"
+            res = (f"🧠 **ANALYSIS: {coin}**\n"
+                   f"🏆 Grade: **{analysis['grade']}**\n"
+                   f"📢 Signal: **{analysis['signal']}**\n"
+                   f"💵 Price: `${analysis['price_usd']:.8f}`\n"
+                   f"🎯 TP1: `${analysis['tp1_usd']:.8f}`\n"
+                   f"📊 RSI: `{analysis['rsi']:.2f}`\n"
+                   f"🐳 Power: `{analysis['mpi']:.1f}%`")
             bot.send_message(m.chat.id, res, parse_mode='Markdown')
         else: bot.reply_to(m, "❌ Data koin tidak ditemukan.")
     except Exception as e: bot.reply_to(m, f"⚠️ Error: {str(e)}")
