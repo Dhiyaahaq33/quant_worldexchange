@@ -192,7 +192,7 @@ def get_intelligence():
 
 if __name__ == "__main__":
     fetch_all_markets()
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8000))
     threading.Thread(target=whale_and_anomaly_detector, daemon=True).start()
     threading.Thread(target=lambda: bot.infinity_polling(), daemon=True).start()
     app.run(host='0.0.0.0', port=port)
