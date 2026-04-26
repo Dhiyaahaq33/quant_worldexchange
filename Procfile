@@ -1,1 +1,1 @@
-web: python binance.py
+web: python auto_trade.py
